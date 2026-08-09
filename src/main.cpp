@@ -80,8 +80,86 @@ std::string handleCommand(const std::string &command)
 
         return it->second.value;
     }
-    else
+    else if (cmd == "DEL")
     {
+        std::string key;
+        iss >> key;
+        if (key.empty())
+        {
+            return "Error: DEL command requires a key";
+        }
+        db.erase(key);
+        return "OK";
+    } else if(cmd == "EXPIRE") {
+        std::string key;
+        int ttl;
+        iss >> key >> ttl;
+        if (key.empty() || ttl <= 0)
+        {
+            return "Error: EXPIRE command requires a key and a positive TTL";
+        }
+
+        auto it = db.find(key);
+        if (it == db.end())
+        {
+            return "Error: Key not found";
+        }
+
+        it->second.expiresAt = std::chrono::steady_clock::now() + std::chrono::seconds(ttl);
+        return "OK";
+    } else if(cmd == "TTL") {
+        std::string key;
+        iss >> key;
+        if (key.empty())
+        {
+            return "Error: TTL command requires a key";
+        }
+
+        auto it = db.find(key);
+        if (it == db.end())
+        {
+            return "Error: Key not found";
+        }
+
+        if (!it->second.expiresAt.has_value())
+        {
+            return "-1"; 
+        }
+
+        auto now = std::chrono::steady_clock::now();
+        if (it->second.expiresAt < now)
+        {
+            db.erase(it);
+            return "Error: Key has expired";
+        }
+
+        auto ttl = std::chrono::duration_cast<std::chrono::seconds>(it->second.expiresAt.value() - now).count();
+        return std::to_string(ttl);
+    } else if(cmd == "EXISTS") {
+        std::string key;
+        iss >> key;
+        if (key.empty())
+        {
+            return "Error: EXISTS command requires a key";
+        }
+
+        auto it = db.find(key);
+        if (it == db.end())
+        {
+            return "0";
+        }
+
+        if (it->second.expiresAt.has_value())
+        {
+            if (it->second.expiresAt < std::chrono::steady_clock::now())
+            {
+                db.erase(it);
+                return "0";
+            }
+        }
+
+        return "1";
+    } else {
         return "Error: unknown command";
     }
 
