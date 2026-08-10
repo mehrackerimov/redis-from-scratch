@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <optional>
 #include <chrono>
+#include <mutex>
 
 struct Entry
 {
@@ -30,4 +31,5 @@ public:
 
 private:
     std::unordered_map<std::string, Entry> db;
+    std::mutex dbMutex;
 };

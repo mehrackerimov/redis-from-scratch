@@ -1,14 +1,16 @@
 #include <database.h>
 
-bool Database::set(const std::string& key, const std::string& value, std::optional<int> ttl)
+bool Database::set(const std::string &key, const std::string &value, std::optional<int> ttl)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
+
     std::optional<std::chrono::steady_clock::time_point> expiresAt = std::nullopt;
 
     if (ttl.has_value())
     {
         if (ttl.value() <= 0)
         {
-            return false; 
+            return false;
         }
         expiresAt = std::chrono::steady_clock::now() + std::chrono::seconds(ttl.value());
     }
@@ -17,8 +19,10 @@ bool Database::set(const std::string& key, const std::string& value, std::option
     return true;
 }
 
-std::optional<std::string> Database::get(const std::string& key)
+std::optional<std::string> Database::get(const std::string &key)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
+
     auto it = db.find(key);
     if (it == db.end())
     {
@@ -37,13 +41,15 @@ std::optional<std::string> Database::get(const std::string& key)
     return it->second.value;
 }
 
-bool Database::del(const std::string& key)
+bool Database::del(const std::string &key)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
     return db.erase(key) > 0;
 }
 
-bool Database::exists(const std::string& key)
+bool Database::exists(const std::string &key)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
     auto it = db.find(key);
     if (it == db.end())
     {
@@ -62,8 +68,9 @@ bool Database::exists(const std::string& key)
     return true;
 }
 
-bool Database::expire(const std::string& key, int seconds)
+bool Database::expire(const std::string &key, int seconds)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
     auto it = db.find(key);
     if (it == db.end())
     {
@@ -79,8 +86,9 @@ bool Database::expire(const std::string& key, int seconds)
     return true;
 }
 
-int Database::ttl(const std::string& key)
+int Database::ttl(const std::string &key)
 {
+    std::lock_guard<std::mutex> lock(dbMutex);
     auto it = db.find(key);
     if (it == db.end())
     {

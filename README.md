@@ -405,11 +405,11 @@ The project focuses on learning:
 - [x] Separate database logic from `main.cpp`
 - [x] TCP server
 - [x] Multiple client connections
+- [x] Concurrent clients
+- [x] Thread-safe database
 
 ### Planned
 
-- [ ] Concurrent clients
-- [ ] Thread-safe database
 - [ ] Better command parser
 - [ ] More Redis commands
 - [ ] Persistence
