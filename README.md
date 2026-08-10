@@ -38,6 +38,8 @@ EXISTS
 EXPIRE
 TTL
 LOGIN
+MSET
+MGET
 ```
 
 ## Architecture

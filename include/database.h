@@ -29,6 +29,10 @@ public:
 
     int ttl(const std::string& key);
 
+    std::vector<std::optional<std::string>> mget(const std::vector<std::string>& keys);
+
+    bool mset(const std::vector<std::pair<std::string, std::string>>& pairs);
+
 private:
     std::unordered_map<std::string, Entry> db;
     std::mutex dbMutex;

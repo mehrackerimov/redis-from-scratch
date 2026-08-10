@@ -9,7 +9,7 @@ CommandHandler::CommandHandler(
 }
 
 std::string CommandHandler::handle(
-    const Command& command,
+    const Command &command,
     Session &session)
 {
     if (command.name == "PING")
@@ -25,8 +25,8 @@ std::string CommandHandler::handle(
             return "ERR: LOGIN requires username and password";
         }
 
-        const std::string& username = command.args[0];
-        const std::string& password = command.args[1];
+        const std::string &username = command.args[0];
+        const std::string &password = command.args[1];
 
         if (username.empty() || password.empty())
         {
@@ -58,8 +58,8 @@ std::string CommandHandler::handle(
             return "ERR: SET requires key and value";
         }
 
-        const std::string& key = command.args[0];
-        const std::string& value = command.args[1];
+        const std::string &key = command.args[0];
+        const std::string &value = command.args[1];
         std::string option;
 
         if (command.args.size() > 2)
@@ -101,7 +101,7 @@ std::string CommandHandler::handle(
             return "ERR: GET requires a key";
         }
 
-        const std::string& key = command.args[0];
+        const std::string &key = command.args[0];
 
         auto value = database.get(key);
 
@@ -121,7 +121,7 @@ std::string CommandHandler::handle(
             return "ERR: DEL requires a key";
         }
 
-        const std::string& key = command.args[0];
+        const std::string &key = command.args[0];
 
         return database.del(key) ? "1" : "0";
     }
@@ -134,7 +134,7 @@ std::string CommandHandler::handle(
             return "ERR: EXISTS requires a key";
         }
 
-        const std::string& key = command.args[0];
+        const std::string &key = command.args[0];
 
         return database.exists(key) ? "1" : "0";
     }
@@ -147,14 +147,14 @@ std::string CommandHandler::handle(
             return "ERR: EXPIRE requires key and seconds";
         }
 
-        const std::string& key = command.args[0];
+        const std::string &key = command.args[0];
         int seconds;
 
         try
         {
             seconds = std::stoi(command.args[1]);
         }
-        catch (const std::exception&)
+        catch (const std::exception &)
         {
             return "ERR: EXPIRE requires a valid number of seconds";
         }
@@ -175,9 +175,67 @@ std::string CommandHandler::handle(
             return "ERR: TTL requires a key";
         }
 
-        const std::string& key = command.args[0];
+        const std::string &key = command.args[0];
 
         return std::to_string(database.ttl(key));
+    }
+
+    // MSET
+
+    else if (command.name == "MSET")
+    {
+        if (command.args.empty() || command.args.size() % 2 != 0)
+        {
+            return "ERR wrong number of arguments for 'MSET'";
+        }
+
+        std::vector<std::pair<std::string, std::string>> pairs;
+
+        for (size_t i = 0; i < command.args.size(); i += 2)
+        {
+            pairs.emplace_back(
+                command.args[i],
+                command.args[i + 1]);
+        }
+
+        if (database.mset(pairs))
+        {
+            return "OK";
+        }
+
+        return "ERR MSET failed";
+    }
+
+    // MGET
+    else if (command.name == "MGET")
+    {
+        if (command.args.empty())
+        {
+            return "ERR wrong number of arguments for 'MGET'";
+        }
+
+        auto results = database.mget(command.args);
+
+        std::string response;
+
+        for (size_t i = 0; i < results.size(); ++i)
+        {
+            if (results[i].has_value())
+            {
+                response += results[i].value();
+            }
+            else
+            {
+                response += "(nil)";
+            }
+
+            if (i + 1 < results.size())
+            {
+                response += "\n";
+            }
+        }
+
+        return response;
     }
 
     return "ERR: Unknown command";

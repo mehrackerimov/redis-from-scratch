@@ -112,3 +112,29 @@ int Database::ttl(const std::string &key)
 
     return -1; // Key exists but has no expiration
 }
+
+std::vector<std::optional<std::string>>
+Database::mget(const std::vector<std::string>& keys)
+{
+    std::vector<std::optional<std::string>> results;
+
+    for (const auto& key : keys)
+    {
+        results.push_back(get(key));
+    }
+
+    return results;
+}
+
+bool Database::mset(
+    const std::vector<std::pair<std::string, std::string>>& pairs)
+{
+    std::lock_guard<std::mutex> lock(dbMutex);
+
+    for (const auto& [key, value] : pairs)
+    {
+        db[key] = Entry{value, std::nullopt};
+    }
+
+    return true;
+}
