@@ -1,17 +1,16 @@
 #include <command_handler.h>
 
 CommandHandler::CommandHandler(
-    Database& database,
-    UserManager& userManager
-)
+    Database &database,
+    UserManager &userManager)
     : database(database),
       userManager(userManager)
 {
 }
 
 std::string CommandHandler::handle(
-    const std::string& command,
-    Session& session)
+    const std::string &command,
+    Session &session)
 {
     if (command == "PING")
     {
@@ -21,9 +20,20 @@ std::string CommandHandler::handle(
     // LOGIN
     else if (command.rfind("LOGIN ", 0) == 0)
     {
-        std::string username = command.substr(6);
+        std::istringstream iss(command);
 
-        if (userManager.authenticate(username, "password"))
+        std::string cmd;
+        std::string username;
+        std::string password;
+
+        iss >> cmd >> username >> password;
+
+        if (username.empty() || password.empty())
+        {
+            return "ERR: LOGIN requires username and password";
+        }
+
+        if (userManager.authenticate(username, password))
         {
             session.authenticated = true;
             session.username = username;
@@ -31,7 +41,7 @@ std::string CommandHandler::handle(
             return "OK";
         }
 
-        return "ERR: Invalid username";
+        return "ERR: Invalid username or password";
     }
 
     // Authentication gerektiren komutlar
