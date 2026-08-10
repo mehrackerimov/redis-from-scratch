@@ -6,6 +6,7 @@
 #include <string>
 
 #include "command_handler.h"
+#include "command_parser.h"
 
 Server::Server(int port, CommandHandler& commandHandler)
     : port(port),
@@ -126,7 +127,7 @@ void Server::handleClient(SOCKET clientSocket)
         std::string command(buffer);
 
         std::string response =
-            commandHandler.handle(command, session);
+            commandHandler.handle(CommandParser().parse(command), session);
 
         send(
             clientSocket,

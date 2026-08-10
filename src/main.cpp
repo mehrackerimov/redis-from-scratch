@@ -9,6 +9,7 @@
 #include "command_handler.h"
 #include "session.h"
 #include "server.h"
+#include <command_parser.h>
 
 int main()
 {
@@ -80,7 +81,7 @@ int main()
 
         std::string response =
             commandHandler.handle(
-                command,
+                CommandParser().parse(command),
                 session
             );
 

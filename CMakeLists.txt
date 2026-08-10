@@ -11,6 +11,8 @@ add_executable(redis_from_scratch
     src/user_manager.cpp
     src/command_handler.cpp
     src/server.cpp
+    src/tokenizer.cpp
+    src/command_parser.cpp
 )
 
 target_include_directories(redis_from_scratch PRIVATE include)

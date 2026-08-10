@@ -9,24 +9,24 @@ CommandHandler::CommandHandler(
 }
 
 std::string CommandHandler::handle(
-    const std::string &command,
+    const Command& command,
     Session &session)
 {
-    if (command == "PING")
+    if (command.name == "PING")
     {
         return "PONG";
     }
 
     // LOGIN
-    else if (command.rfind("LOGIN ", 0) == 0)
+    else if (command.name == "LOGIN")
     {
-        std::istringstream iss(command);
+        if (command.args.size() < 2)
+        {
+            return "ERR: LOGIN requires username and password";
+        }
 
-        std::string cmd;
-        std::string username;
-        std::string password;
-
-        iss >> cmd >> username >> password;
+        const std::string& username = command.args[0];
+        const std::string& password = command.args[1];
 
         if (username.empty() || password.empty())
         {
@@ -51,23 +51,21 @@ std::string CommandHandler::handle(
     }
 
     // SET
-    else if (command.rfind("SET ", 0) == 0)
+    else if (command.name == "SET")
     {
-        std::istringstream iss(command);
-
-        std::string cmd;
-        std::string key;
-        std::string value;
-        std::string option;
-
-        iss >> cmd >> key >> value;
-
-        if (key.empty() || value.empty())
+        if (command.args.size() < 2)
         {
             return "ERR: SET requires key and value";
         }
 
-        iss >> option;
+        const std::string& key = command.args[0];
+        const std::string& value = command.args[1];
+        std::string option;
+
+        if (command.args.size() > 2)
+        {
+            option = command.args[2];
+        }
 
         std::optional<int> ttl = std::nullopt;
 
@@ -75,7 +73,7 @@ std::string CommandHandler::handle(
         {
             int seconds;
 
-            if (!(iss >> seconds) || seconds <= 0)
+            if (!(std::istringstream(command.args[3]) >> seconds) || seconds <= 0)
             {
                 return "ERR: EX requires a positive number";
             }
@@ -96,9 +94,14 @@ std::string CommandHandler::handle(
     }
 
     // GET
-    else if (command.rfind("GET ", 0) == 0)
+    else if (command.name == "GET")
     {
-        std::string key = command.substr(4);
+        if (command.args.size() < 1)
+        {
+            return "ERR: GET requires a key";
+        }
+
+        const std::string& key = command.args[0];
 
         auto value = database.get(key);
 
@@ -111,33 +114,52 @@ std::string CommandHandler::handle(
     }
 
     // DEL
-    else if (command.rfind("DEL ", 0) == 0)
+    else if (command.name == "DEL")
     {
-        std::string key = command.substr(4);
+        if (command.args.size() < 1)
+        {
+            return "ERR: DEL requires a key";
+        }
+
+        const std::string& key = command.args[0];
 
         return database.del(key) ? "1" : "0";
     }
 
     // EXISTS
-    else if (command.rfind("EXISTS ", 0) == 0)
+    else if (command.name == "EXISTS")
     {
-        std::string key = command.substr(7);
+        if (command.args.size() < 1)
+        {
+            return "ERR: EXISTS requires a key";
+        }
+
+        const std::string& key = command.args[0];
 
         return database.exists(key) ? "1" : "0";
     }
 
     // EXPIRE
-    else if (command.rfind("EXPIRE ", 0) == 0)
+    else if (command.name == "EXPIRE")
     {
-        std::istringstream iss(command);
+        if (command.args.size() < 2)
+        {
+            return "ERR: EXPIRE requires key and seconds";
+        }
 
-        std::string cmd;
-        std::string key;
+        const std::string& key = command.args[0];
         int seconds;
 
-        iss >> cmd >> key >> seconds;
+        try
+        {
+            seconds = std::stoi(command.args[1]);
+        }
+        catch (const std::exception&)
+        {
+            return "ERR: EXPIRE requires a valid number of seconds";
+        }
 
-        if (key.empty() || iss.fail())
+        if (key.empty() || seconds <= 0)
         {
             return "ERR: EXPIRE requires key and seconds";
         }
@@ -146,9 +168,14 @@ std::string CommandHandler::handle(
     }
 
     // TTL
-    else if (command.rfind("TTL ", 0) == 0)
+    else if (command.name == "TTL")
     {
-        std::string key = command.substr(4);
+        if (command.args.size() < 1)
+        {
+            return "ERR: TTL requires a key";
+        }
+
+        const std::string& key = command.args[0];
 
         return std::to_string(database.ttl(key));
     }
