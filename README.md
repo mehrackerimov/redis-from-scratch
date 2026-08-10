@@ -1,232 +1,126 @@
 # Redis From Scratch
 
-A Redis-inspired in-memory key-value store built from scratch in C++.
+A Redis-inspired in-memory key-value database written in C++ from scratch.
 
-This project is primarily focused on learning how databases, command handling, authentication, expiration, and server-side architecture work internally.
+> **Status:** Work in Progress 🚧
 
-> This is an educational project and is not intended to be a production-ready Redis replacement.
-
----
+This project is built for learning and focuses on TCP networking, command parsing, authentication, sessions, expiration, concurrency, thread safety, and database design.
 
 ## Features
 
-### Key-Value Operations
+### Database
 
-- `SET` - Store a value
-- `GET` - Retrieve a value
-- `DEL` - Delete a key
-- `EXISTS` - Check whether a key exists
+- [x] In-memory key-value storage
+- [x] `SET`
+- [x] `GET`
+- [x] `DEL`
+- [x] `EXISTS`
+- [x] Key expiration
+- [x] `EX`
+- [x] `TTL`
+- [x] `EXPIRE`
+- [x] Thread-safe database access
+- [ ] Persistence
+- [ ] RDB snapshots
+- [ ] AOF
 
-### Key Expiration
+### Networking
 
-- `SET ... EX <seconds>` - Set a key with an expiration time
-- `EXPIRE` - Set an expiration time on an existing key
-- `TTL` - Get the remaining lifetime of a key
-- Automatic expiration checking
+- [x] TCP server
+- [x] IPv4 / Winsock support
+- [x] Multiple client connections
+- [x] Concurrent client handling
+- [x] Per-client sessions
+- [ ] Connection limits
+- [ ] Graceful shutdown
 
 ### Authentication
 
-- User management
-- Username and password authentication
-- Session-based authentication
-- Authentication required before protected commands
+- [x] User management
+- [x] User creation
+- [x] Username/password authentication
+- [x] Session authentication state
+- [x] Protected commands
+- [ ] ACL system
+- [ ] Password hashing
 
-### Architecture
+### Command System
+
+- [x] Command handler
+- [x] Command parser
+- [x] Tokenizer
+- [x] Structured `Command` representation
+- [ ] Better argument validation
+- [ ] Quoted arguments
+- [ ] Escape character support
+- [ ] RESP protocol parser
+
+## Supported Commands
+
+Currently implemented:
+
+```text
+PING
+SET
+GET
+DEL
+EXISTS
+EXPIRE
+TTL
+LOGIN
+```
+
+More Redis-compatible commands will be added over time.
+
+## Architecture
 
 ```text
 Client
   │
+  │ TCP
+  ▼
+Server
+  │
+  ▼
+Session
+  │
+  ▼
+CommandParser
+  │
+  ▼
+Command
+  │
   ▼
 CommandHandler
   │
-  ├── UserManager
+  ├──────────────► Database
   │
-  └── Database
+  └──────────────► UserManager
 ```
 
-Main components:
-
-- **Database** - Handles key-value storage and expiration
-- **CommandHandler** - Parses and handles commands
-- **UserManager** - Manages users and authentication
-- **Session** - Stores authentication state for a connection
-
----
-
-## Supported Commands
-
-### SET
-
-Store a value:
-
-```text
-SET name Mehrac
-```
-
-Response:
-
-```text
-OK
-```
-
-Set a value with expiration:
+A command such as:
 
 ```text
 SET name Mehrac EX 60
 ```
 
-The key will expire after 60 seconds.
-
----
-
-### GET
-
-Retrieve a value:
+flows through:
 
 ```text
-GET name
+Raw input
+   ↓
+Tokenizer
+   ↓
+["SET", "name", "Mehrac", "EX", "60"]
+   ↓
+CommandParser
+   ↓
+Command { name, args }
+   ↓
+CommandHandler
+   ↓
+Database
 ```
-
-Response:
-
-```text
-Mehrac
-```
-
----
-
-### DEL
-
-Delete a key:
-
-```text
-DEL name
-```
-
-Response:
-
-```text
-1
-```
-
-If the key does not exist:
-
-```text
-0
-```
-
----
-
-### EXISTS
-
-Check whether a key exists:
-
-```text
-EXISTS name
-```
-
-Response:
-
-```text
-1
-```
-
-or:
-
-```text
-0
-```
-
----
-
-### EXPIRE
-
-Set an expiration time:
-
-```text
-EXPIRE name 60
-```
-
-The key will expire after 60 seconds.
-
----
-
-### TTL
-
-Check the remaining lifetime:
-
-```text
-TTL name
-```
-
-Example:
-
-```text
-59
-```
-
-Possible return values:
-
-```text
--1    Key exists but has no expiration
--2    Key does not exist
-```
-
----
-
-### LOGIN
-
-Authenticate a user:
-
-```text
-LOGIN mehrac 12345
-```
-
-Successful authentication:
-
-```text
-OK
-```
-
-Invalid credentials:
-
-```text
-ERR: Invalid username or password
-```
-
-Authentication is stored inside the current session.
-
----
-
-## Example
-
-```text
-> LOGIN mehrac 12345
-OK
-
-> SET name Mehrac
-OK
-
-> GET name
-Mehrac
-
-> EXISTS name
-1
-
-> EXPIRE name 10
-1
-
-> TTL name
-9
-
-> DEL name
-1
-
-> GET name
-ERR: Key not found
-```
-
----
 
 ## Project Structure
 
@@ -236,198 +130,428 @@ redis-from-scratch/
 ├── CMakeLists.txt
 ├── README.md
 ├── LICENSE
+├── .gitignore
+├── build-and-run.bat
 │
 ├── include/
 │   ├── database.h
+│   ├── command.h
+│   ├── command_parser.h
 │   ├── command_handler.h
+│   ├── tokenizer.h
 │   ├── user_manager.h
-│   └── session.h
+│   ├── session.h
+│   └── server.h
 │
 ├── src/
 │   ├── main.cpp
 │   ├── database.cpp
+│   ├── command_parser.cpp
 │   ├── command_handler.cpp
-│   └── user_manager.cpp
+│   ├── tokenizer.cpp
+│   ├── user_manager.cpp
+│   └── server.cpp
 │
-└── build/
+├── tests/
+│   └── ...
+│
+└── benchmarks/
+    └── ...
 ```
 
-### Database
+## Database
 
-Responsible for:
-
-- Storing key-value pairs
-- Retrieving values
-- Deleting keys
-- Checking key existence
-- Managing expiration times
-- Calculating TTL
-
-The data is currently stored in memory using:
+The database is currently an in-memory hash-table-based store, conceptually similar to:
 
 ```cpp
-std::unordered_map
+std::unordered_map<std::string, Entry>
 ```
 
-### CommandHandler
-
-Responsible for:
-
-- Receiving commands
-- Parsing command arguments
-- Validating commands
-- Calling the appropriate database operation
-- Handling authentication-related commands
-
-Example:
+An entry contains a value and optional expiration information:
 
 ```text
-SET name Mehrac
-       │
-       ▼
-CommandHandler
-       │
-       ▼
-Database::set()
+Key
+ ├── Value
+ └── Expiration
 ```
 
-### UserManager
+Expiration is tracked with:
 
-Responsible for:
+```cpp
+std::chrono::steady_clock
+```
 
-- Creating users
-- Checking whether users exist
-- Authenticating usernames and passwords
+## Thread Safety
 
-### Session
+The server supports concurrent clients. Each client is handled independently, while shared database operations are protected with a mutex.
 
-Stores the authentication state of the current connection.
+RAII-based locking is used:
 
-Example:
+```cpp
+std::lock_guard<std::mutex>
+```
+
+This is preferred over manual:
+
+```cpp
+mutex.lock();
+mutex.unlock();
+```
+
+because the lock is automatically released when the guard leaves scope.
+
+## TCP Server
+
+The server uses Windows Winsock.
+
+Basic lifecycle:
+
+```text
+WSAStartup
+   ↓
+socket()
+   ↓
+bind()
+   ↓
+listen()
+   ↓
+accept()
+   ↓
+recv()
+   ↓
+CommandParser
+   ↓
+CommandHandler
+   ↓
+send()
+```
+
+The default port is `6379`.
+
+Multiple clients can connect concurrently, with each client handled in its own thread.
+
+## Sessions
+
+Each connected client receives its own session.
+
+A session tracks authentication state and the logged-in username:
 
 ```cpp
 struct Session
 {
-    bool authenticated = false;
+    bool authenticated;
     std::string username;
 };
 ```
 
----
+Authentication therefore belongs to a connection rather than being global state inside the command handler.
 
-## Technologies
+## Authentication
 
-- **C++20**
-- **CMake**
-- **STL**
-- `std::unordered_map`
-- `std::optional`
-- `std::chrono`
+The project includes a basic in-memory `UserManager`.
 
----
+Example flow:
+
+```text
+LOGIN user1 password
+        ↓
+   UserManager
+        ↓
+   authenticate()
+        ↓
+     Session
+```
+
+Unauthenticated clients are prevented from executing protected commands.
+
+The authentication system is intentionally simple and is planned to evolve into an ACL-style permission system.
+
+## Local Console
+
+The same command pipeline can be used from the local console during development:
+
+```text
+Local console ready.
+
+> PING
+PONG
+
+> SET name Mehrac
+OK
+
+> GET name
+Mehrac
+```
 
 ## Building
 
 ### Requirements
 
-- C++20 compatible compiler
+- Windows
+- C++17 or newer
 - CMake
-- Windows / Visual Studio Build Tools or another compatible compiler
-
-### Configure
-
-```bash
-cmake -S . -B build
-```
+- Visual Studio / MSVC
+- Winsock2
 
 ### Build
 
 ```bash
+cmake -S . -B build
 cmake --build build
 ```
 
-The executable will be generated inside the build directory.
+The Visual Studio executable will typically be:
 
----
+```text
+build/Debug/redis_from_scratch.exe
+```
 
 ## Running
 
-On Windows:
+Run:
 
-```bash
-build\Debug\redis_from_scratch.exe
-```
-
-You can also use the included build script if available:
-
-```bash
+```text
 build-and-run.bat
 ```
 
----
+or:
 
-## Design Goals
+```text
+build\Debug\redis_from_scratch.exe
+```
 
-The main goal of this project is to understand how a Redis-like system can be built from the ground up.
+The server starts on port `6379` by default.
 
-The project focuses on learning:
+## Testing
 
-- Data structures
+Tests are kept separate from the main application.
+
+Example:
+
+```text
+tests/
+├── database_test.cpp
+├── command_handler_test.cpp
+└── user_manager_test.cpp
+```
+
+A simple database test can look like:
+
+```cpp
+db.set("name", "Mehrac", std::nullopt);
+
+auto value = db.get("name");
+
+assert(value.has_value());
+assert(value.value() == "Mehrac");
+```
+
+Planned testing improvements:
+
+- Unit tests
+- Integration tests
+- Concurrent access tests
+- CTest integration
+- Dedicated testing framework
+
+## Performance Benchmarks
+
+Benchmarks will measure:
+
+- `SET` operations per second
+- `GET` operations per second
+- Database throughput
+- Concurrent client performance
+- Mutex overhead
+- Request latency
+- Stress-test behavior
+
+Example future output:
+
+```text
+Operation    Operations/sec
+---------------------------
+SET          150,000
+GET          200,000
+DEL          140,000
+```
+
+## Configuration
+
+A configuration system is planned so server settings can be changed without recompiling.
+
+Potential configuration:
+
+```ini
+port=6379
+max_clients=100
+log_level=info
+```
+
+Planned settings include:
+
+- Server port
+- Maximum clients
+- Log level
+- Persistence settings
+- Database settings
+- Authentication settings
+
+## Logging
+
+A dedicated logging system is planned for diagnostics.
+
+Example:
+
+```text
+[INFO] Server started on port 6379
+[INFO] Client connected
+[INFO] Command received: SET
+[INFO] User logged in
+[ERROR] Failed to accept client
+```
+
+Planned features:
+
+- `DEBUG`
+- `INFO`
+- `WARN`
+- `ERROR`
+- Timestamps
+- File output
+- Thread-safe logging
+
+## Roadmap
+
+### Commands
+
+- [ ] `MGET`
+- [ ] `MSET`
+- [ ] `SETNX`
+- [ ] `GETSET`
+- [ ] `GETDEL`
+- [ ] `GETEX`
+- [ ] `APPEND`
+- [ ] `STRLEN`
+- [ ] `INCR`
+- [ ] `INCRBY`
+- [ ] `INCRBYFLOAT`
+- [ ] `DECR`
+- [ ] `DECRBY`
+- [ ] `SETEX`
+- [ ] `PSETEX`
+
+### Data Structures
+
+- [ ] Lists
+- [ ] Sets
+- [ ] Hashes
+- [ ] Sorted Sets
+- [ ] Streams
+
+### Protocol
+
+- [ ] RESP2
+- [ ] RESP3
+- [ ] Proper request framing
+- [ ] Bulk strings
+- [ ] Arrays
+- [ ] Error responses
+
+### Persistence
+
+- [ ] RDB-style snapshots
+- [ ] AOF
+- [ ] Automatic snapshots
+- [ ] Data recovery on startup
+
+### Security
+
+- [ ] ACL
+- [ ] Multiple users
+- [ ] User permissions
+- [ ] Password hashing
+
+### Server
+
+- [x] TCP server
+- [x] Concurrent clients
+- [x] Sessions
+- [ ] Connection limits
+- [ ] Graceful shutdown
+- [ ] Configuration system
+- [ ] Logging system
+
+### Testing & Performance
+
+- [ ] Full unit test suite
+- [ ] Integration tests
+- [ ] Concurrent tests
+- [ ] Performance benchmarks
+- [ ] Stress testing
+
+## Learning Goals
+
+This is primarily an educational implementation.
+
+The project is intended to build practical understanding of:
+
+- TCP and socket programming
+- Concurrent programming
+- Mutexes and thread safety
+- In-memory databases
+- Hash tables
 - Command parsing
 - Authentication
 - Session management
 - Key expiration
-- C++ class design
-- Separation of responsibilities
-- CMake project structure
-- Networking
-- Concurrency
+- Persistence
+- Database protocols
+- Performance optimization
+- CMake project organization
 
----
+Features are added incrementally rather than attempting to reproduce the entire Redis implementation at once.
 
-## Roadmap
+## Development Roadmap
 
-### Completed
-
-- [x] CMake project setup
-- [x] In-memory key-value storage
-- [x] `SET`
-- [x] `GET`
-- [x] `DEL`
-- [x] `EXISTS`
-- [x] `EXPIRE`
-- [x] `TTL`
-- [x] Key expiration with `EX`
-- [x] User management
-- [x] Password authentication
-- [x] Session authentication
-- [x] CommandHandler
-- [x] Separate database logic from `main.cpp`
-- [x] TCP server
-- [x] Multiple client connections
-- [x] Concurrent clients
-- [x] Thread-safe database
-
-### Planned
-
-- [ ] Better command parser
-- [ ] More Redis commands
-- [ ] Persistence
-- [ ] Automated tests
-- [ ] Logging
-- [ ] Configuration system
-- [ ] Performance benchmarks
-
----
+```text
+Basic Database
+      ↓
+Command System
+      ↓
+Authentication
+      ↓
+TCP Server
+      ↓
+Concurrent Clients
+      ↓
+Thread Safety
+      ↓
+Better Parser
+      ↓
+More Commands
+      ↓
+Testing
+      ↓
+Logging
+      ↓
+Configuration
+      ↓
+Persistence
+      ↓
+RESP Protocol
+      ↓
+More Redis Data Structures
+      ↓
+Performance Optimization
+```
 
 ## Disclaimer
 
-This project is created for educational purposes and is inspired by Redis.
+This project is **not Redis** and is not intended to be a production-ready replacement for Redis.
 
-It is not intended to be compatible with Redis or to replace Redis in production environments.
-
----
+It is an independent implementation inspired by Redis, created for educational and experimental purposes.
 
 ## License
 
-This project is licensed under the MIT License.
+See the `LICENSE` file included in the repository.
