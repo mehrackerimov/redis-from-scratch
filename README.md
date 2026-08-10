@@ -404,6 +404,7 @@ The project focuses on learning:
 - [x] CommandHandler
 - [x] Separate database logic from `main.cpp`
 - [x] TCP server
+- [x] Multiple client connections
 
 ### Planned
 
