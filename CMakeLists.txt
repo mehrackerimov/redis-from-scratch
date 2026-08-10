@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_executable(redis_from_scratch
     src/main.cpp
     src/database.cpp
+    src/user_manager.cpp
+    src/command_handler.cpp
 )
 
 target_include_directories(redis_from_scratch PRIVATE include)
