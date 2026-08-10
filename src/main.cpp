@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <chrono>
 #include <sstream>
+#include <optional>
 
 struct Entry
 {
