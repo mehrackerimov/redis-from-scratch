@@ -1,17 +1,9 @@
 #include <iostream>
-#include <string>
-#include <unordered_map>
-#include <chrono>
 #include <sstream>
-#include <optional>
 
-struct Entry
-{
-    std::string value;
-    std::optional<std::chrono::steady_clock::time_point> expiresAt;
-};
+#include "database.h"
 
-std::unordered_map<std::string, Entry> db;
+Database db;
 
 std::string handleCommand(const std::string &command)
 {
@@ -50,7 +42,7 @@ std::string handleCommand(const std::string &command)
             return "Error: unknown SET option";
         }
 
-        db[key] = {value, expiresAt};
+        db.set(key, value, expiresAt.has_value() ? std::optional<int>(std::chrono::duration_cast<std::chrono::seconds>(expiresAt.value() - std::chrono::steady_clock::now()).count()) : std::nullopt);
 
         return "OK";
     }
@@ -64,22 +56,9 @@ std::string handleCommand(const std::string &command)
             return "Error: GET command requires a key";
         }
 
-        auto it = db.find(key);
-        if (it == db.end())
-        {
-            return "Error: Key not found";
-        }
+        auto it = db.get(key);
 
-        if (it->second.expiresAt.has_value())
-        {
-            if (it->second.expiresAt < std::chrono::steady_clock::now())
-            {
-                db.erase(it);
-                return "Error: Key has expired";
-            }
-        }
-
-        return it->second.value;
+        return it.value();
     }
     else if (cmd == "DEL")
     {
@@ -89,9 +68,11 @@ std::string handleCommand(const std::string &command)
         {
             return "Error: DEL command requires a key";
         }
-        db.erase(key);
+        db.del(key);
         return "OK";
-    } else if(cmd == "EXPIRE") {
+    }
+    else if (cmd == "EXPIRE")
+    {
         std::string key;
         int ttl;
         iss >> key >> ttl;
@@ -100,15 +81,16 @@ std::string handleCommand(const std::string &command)
             return "Error: EXPIRE command requires a key and a positive TTL";
         }
 
-        auto it = db.find(key);
-        if (it == db.end())
+        if (!db.exists(key))
         {
             return "Error: Key not found";
         }
 
-        it->second.expiresAt = std::chrono::steady_clock::now() + std::chrono::seconds(ttl);
+        db.expire(key, ttl);
         return "OK";
-    } else if(cmd == "TTL") {
+    }
+    else if (cmd == "TTL")
+    {
         std::string key;
         iss >> key;
         if (key.empty())
@@ -116,27 +98,16 @@ std::string handleCommand(const std::string &command)
             return "Error: TTL command requires a key";
         }
 
-        auto it = db.find(key);
-        if (it == db.end())
+        if (!db.exists(key))
         {
-            return "Error: Key not found";
+            return "-2"; // Key does not exist
         }
 
-        if (!it->second.expiresAt.has_value())
-        {
-            return "-1"; 
-        }
-
-        auto now = std::chrono::steady_clock::now();
-        if (it->second.expiresAt < now)
-        {
-            db.erase(it);
-            return "Error: Key has expired";
-        }
-
-        auto ttl = std::chrono::duration_cast<std::chrono::seconds>(it->second.expiresAt.value() - now).count();
+        int ttl = db.ttl(key);
         return std::to_string(ttl);
-    } else if(cmd == "EXISTS") {
+    }
+    else if (cmd == "EXISTS")
+    {
         std::string key;
         iss >> key;
         if (key.empty())
@@ -144,23 +115,15 @@ std::string handleCommand(const std::string &command)
             return "Error: EXISTS command requires a key";
         }
 
-        auto it = db.find(key);
-        if (it == db.end())
+        if (db.exists(key))
         {
-            return "0";
+            return "1";
         }
 
-        if (it->second.expiresAt.has_value())
-        {
-            if (it->second.expiresAt < std::chrono::steady_clock::now())
-            {
-                db.erase(it);
-                return "0";
-            }
-        }
-
-        return "1";
-    } else {
+        return "0";
+    }
+    else
+    {
         return "Error: unknown command";
     }
 
