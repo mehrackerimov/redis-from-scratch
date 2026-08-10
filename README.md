@@ -403,11 +403,10 @@ The project focuses on learning:
 - [x] Session authentication
 - [x] CommandHandler
 - [x] Separate database logic from `main.cpp`
+- [x] TCP server
 
 ### Planned
 
-- [ ] TCP server
-- [ ] Multiple client connections
 - [ ] Concurrent clients
 - [ ] Thread-safe database
 - [ ] Better command parser

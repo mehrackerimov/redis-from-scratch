@@ -10,6 +10,8 @@ add_executable(redis_from_scratch
     src/database.cpp
     src/user_manager.cpp
     src/command_handler.cpp
+    src/server.cpp
 )
 
 target_include_directories(redis_from_scratch PRIVATE include)
+target_link_libraries(redis_from_scratch PRIVATE ws2_32)

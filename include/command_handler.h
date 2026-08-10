@@ -1,3 +1,5 @@
+#pragma once
+
 #include <database.h>
 #include <session.h>
 #include <user_manager.h>
