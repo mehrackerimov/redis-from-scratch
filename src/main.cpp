@@ -10,6 +10,7 @@
 #include "session.h"
 #include "server.h"
 #include "logger.h"
+#include "config.h"
 #include <command_parser.h>
 
 int main()
@@ -28,7 +29,15 @@ int main()
         return 1;
     }
 
-    Logger logger(LogLevel::INFO);
+    Config config("config/server.conf");
+
+    if (!config.load())
+    {
+        std::cerr << "Failed to load config\n";
+        return 1;
+    }
+
+    Logger logger(config.logLevel());
     Database database;
     UserManager userManager;
 
@@ -41,11 +50,11 @@ int main()
         userManager, logger);
 
     Server server(
-        6379,
+        config.port(),
         commandHandler,
         logger);
 
-    logger.info("Server is starting on port 6379...");
+    logger.info("Server is starting on port " + std::to_string(config.port()) + "...");
 
     std::thread serverThread([&server]()
                              {
@@ -64,6 +73,8 @@ int main()
     serverThread.detach();
 
     Session session;
+
+    session.username = "system";
 
     std::cout << "Local console ready.\n";
 

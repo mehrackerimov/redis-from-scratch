@@ -13,6 +13,9 @@ std::string CommandHandler::handle(
     const Command &command,
     Session &session)
 {
+
+    logger.debug("User '" + session.username + "' executed command '" + command.name + "'");
+
     if (command.name == "PING")
     {
         return "PONG";
