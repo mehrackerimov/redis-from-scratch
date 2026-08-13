@@ -9,6 +9,7 @@
 #include "command_handler.h"
 #include "session.h"
 #include "server.h"
+#include "logger.h"
 #include <command_parser.h>
 
 int main()
@@ -17,8 +18,7 @@ int main()
 
     int result = WSAStartup(
         MAKEWORD(2, 2),
-        &wsaData
-    );
+        &wsaData);
 
     if (result != 0)
     {
@@ -28,26 +28,27 @@ int main()
         return 1;
     }
 
+    Logger logger(LogLevel::INFO);
     Database database;
     UserManager userManager;
 
     userManager.createUser(
         "user1",
-        "password"
-    );
+        "password");
 
     CommandHandler commandHandler(
         database,
-        userManager
-    );
+        userManager, logger);
 
     Server server(
         6379,
-        commandHandler
-    );
+        commandHandler,
+        logger);
+
+    logger.info("Server is starting on port 6379...");
 
     std::thread serverThread([&server]()
-    {
+                             {
         try
         {
             server.start();
@@ -58,8 +59,7 @@ int main()
                 << "Server error: "
                 << e.what()
                 << '\n';
-        }
-    });
+        } });
 
     serverThread.detach();
 
@@ -82,8 +82,7 @@ int main()
         std::string response =
             commandHandler.handle(
                 CommandParser().parse(command),
-                session
-            );
+                session);
 
         std::cout << response << '\n';
     }

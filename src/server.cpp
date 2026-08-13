@@ -8,9 +8,10 @@
 #include "command_handler.h"
 #include "command_parser.h"
 
-Server::Server(int port, CommandHandler& commandHandler)
+Server::Server(int port, CommandHandler& commandHandler, Logger &logger)
     : port(port),
-      commandHandler(commandHandler)
+      commandHandler(commandHandler),
+      logger(logger)
 {
 }
 
@@ -90,9 +91,13 @@ void Server::acceptClients()
                 << "Failed to accept client. Error: "
                 << WSAGetLastError()
                 << '\n';
+            
+            logger.error("Failed to accept client. Error: " + std::to_string(WSAGetLastError()));
 
             continue;
         }
+
+        logger.info("Client connected");
 
         std::thread(
             &Server::handleClient,

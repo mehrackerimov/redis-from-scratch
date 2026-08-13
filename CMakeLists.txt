@@ -13,6 +13,7 @@ add_executable(redis_from_scratch
     src/server.cpp
     src/tokenizer.cpp
     src/command_parser.cpp
+    src/logger.cpp
 )
 
 target_include_directories(redis_from_scratch PRIVATE include)

@@ -2,9 +2,10 @@
 
 CommandHandler::CommandHandler(
     Database &database,
-    UserManager &userManager)
+    UserManager &userManager, Logger &logger)
     : database(database),
-      userManager(userManager)
+      userManager(userManager),
+      logger(logger)
 {
 }
 
@@ -37,6 +38,8 @@ std::string CommandHandler::handle(
         {
             session.authenticated = true;
             session.username = username;
+
+            logger.info("User '" + username + "' authenticated");
 
             return "OK";
         }

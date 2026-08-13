@@ -1,13 +1,14 @@
 #pragma once
 
 #include <string>
+#include "logger.h"
 #include <winsock2.h>
 #include "command_handler.h"
 
 class Server
 {
 public:
-    Server(int port, CommandHandler& commandHandler);
+    Server(int port, CommandHandler &commandHandler, Logger &logger);
 
     void start();
 
@@ -19,6 +20,6 @@ private:
 private:
     int port;
     SOCKET serverSocket = INVALID_SOCKET;
-
-    CommandHandler& commandHandler;
+    Logger &logger;
+    CommandHandler &commandHandler;
 };
