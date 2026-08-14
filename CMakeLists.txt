@@ -15,7 +15,19 @@ add_executable(redis_from_scratch
     src/command_parser.cpp
     src/logger.cpp
     src/config.cpp
+    src/password_hasher.cpp
 )
 
-target_include_directories(redis_from_scratch PRIVATE include)
-target_link_libraries(redis_from_scratch PRIVATE ws2_32)
+target_include_directories(redis_from_scratch PRIVATE
+    include
+    C:/vcpkg/installed/x64-windows/include
+)
+
+target_link_directories(redis_from_scratch PRIVATE
+    C:/vcpkg/installed/x64-windows/lib
+)
+
+target_link_libraries(redis_from_scratch PRIVATE
+    ws2_32
+    libsodium
+)

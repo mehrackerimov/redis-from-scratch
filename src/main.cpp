@@ -3,7 +3,7 @@
 #include <thread>
 
 #include <winsock2.h>
-
+#include <sodium.h>
 #include "database.h"
 #include "user_manager.h"
 #include "command_handler.h"
@@ -39,11 +39,15 @@ int main()
 
     Logger logger(config.logLevel());
     Database database;
+
+    if (sodium_init() < 0)
+    {
+        return 1;
+    }
+
     UserManager userManager;
 
-    userManager.createUser(
-        "user1",
-        "password");
+    userManager.createUser("admin", "admin123");
 
     CommandHandler commandHandler(
         database,
@@ -75,6 +79,7 @@ int main()
     Session session;
 
     session.username = "system";
+    session.authenticated = true;
 
     std::cout << "Local console ready.\n";
 
@@ -90,9 +95,13 @@ int main()
         if (command == "QUIT")
             break;
 
+        CommandParser parser;
+
+        Command parsedCommand = parser.parse(command);
+
         std::string response =
             commandHandler.handle(
-                CommandParser().parse(command),
+                parsedCommand,
                 session);
 
         std::cout << response << '\n';
