@@ -1,5 +1,6 @@
 #include <command_handler.h>
 
+#include <iostream>
 CommandHandler::CommandHandler(
     Database &database,
     UserManager &userManager, Logger &logger)
@@ -9,10 +10,30 @@ CommandHandler::CommandHandler(
 {
 }
 
+bool CommandHandler::isValidCommand(const std::string &command) const
+{
+    return command == "GET" || command == "SET" || command == "MGET" || command == "MSET" || command == "DEL" || command == "PING" || command == "LOGIN" || command == "ACL" || command == "QUIT";
+}
+
 std::string CommandHandler::handle(
     const Command &command,
     Session &session)
 {
+    if (userManager.requiresPermission(command.name))
+    {
+        if (!session.authenticated)
+        {
+            return "-NOAUTH Authentication required\r\n";
+        }
+
+        if (!session.isSystem &&
+            !userManager.hasPermission(
+                session.username,
+                command.name))
+        {
+            return "-NOPERM command not allowed\r\n";
+        }
+    }
 
     logger.debug("User '" + session.username + "' executed command '" + command.name + "'");
 
@@ -48,12 +69,6 @@ std::string CommandHandler::handle(
         }
 
         return "ERR: Invalid username or password";
-    }
-
-    // Authentication gerektiren komutlar
-    if (!session.authenticated)
-    {
-        return "ERR: Not authenticated";
     }
 
     // SET
@@ -244,5 +259,143 @@ std::string CommandHandler::handle(
         return response;
     }
 
-    return "ERR: Unknown command";
+    else if (command.name == "LOGOUT")
+    {
+        if (!session.authenticated)
+        {
+            return "-NOAUTH Not authenticated\r\n";
+        }
+
+        session.authenticated = false;
+        session.username.clear();
+
+        logger.info("User logged out");
+
+        return "OK";
+    }
+
+    else if (command.name == "ACL")
+    {
+        if (command.args.empty())
+        {
+            return "-ERR ACL requires a subcommand\r\n";
+        }
+
+        const std::string &subcommand = command.args[0];
+
+        if (subcommand != "SETUSER")
+        {
+            return "-ERR unknown ACL subcommand\r\n";
+        }
+
+        if (command.args.size() < 2)
+        {
+            return "-ERR wrong number of arguments for 'acl|setuser' command\r\n";
+        }
+
+        const std::string &username = command.args[1];
+
+        if (username.empty())
+        {
+            return "-ERR invalid username\r\n";
+        }
+
+        if (!userManager.userExists(username))
+        {
+            if (!userManager.createUser(username, "", {}))
+            {
+                return "-ERR failed to create user\r\n";
+            }
+        }
+
+        for (size_t i = 2; i < command.args.size(); ++i)
+        {
+            const std::string &option = command.args[i];
+
+            if (option == "on")
+            {
+                if (!userManager.setUserEnabled(username, true))
+                {
+                    return "-ERR failed to enable user\r\n";
+                }
+            }
+            else if (option == "off")
+            {
+                if (!userManager.setUserEnabled(username, false))
+                {
+                    return "-ERR failed to disable user\r\n";
+                }
+            }
+            else if (option.rfind(">", 0) == 0)
+            {
+                std::string password = option.substr(1);
+
+                if (password.empty())
+                {
+                    return "-ERR password cannot be empty\r\n";
+                }
+
+                if (!userManager.setPassword(username, password))
+                {
+                    return "-ERR failed to set password\r\n";
+                }
+            }
+            else if (option.rfind("+", 0) == 0)
+            {
+                std::string permission = option.substr(1);
+
+                if (permission.empty())
+                {
+                    return "-ERR empty permission\r\n";
+                }
+
+                if (permission != "*" &&
+                    !isValidCommand(permission))
+                {
+                    return "-ERR unknown command '" +
+                           permission + "'\r\n";
+                }
+
+                if (!userManager.addPermission(
+                        username,
+                        permission))
+                {
+                    return "-ERR failed to add permission\r\n";
+                }
+            }
+            else if (option.rfind("-", 0) == 0)
+            {
+                std::string permission = option.substr(1);
+
+                if (permission.empty())
+                {
+                    return "-ERR empty permission\r\n";
+                }
+
+                if (permission != "*" &&
+                    !isValidCommand(permission))
+                {
+                    return "-ERR unknown command '" +
+                           permission + "'\r\n";
+                }
+
+                if (!userManager.removePermission(
+                        username,
+                        permission))
+                {
+                    return "-ERR failed to remove permission\r\n";
+                }
+            }
+            else
+            {
+                return "-ERR unknown ACL option '" +
+                       option +
+                       "'\r\n";
+            }
+        }
+
+        return "+OK\r\n";
+    }
+
+    return "-ERR unknown command\r\n";
 }

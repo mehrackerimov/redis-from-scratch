@@ -12,6 +12,7 @@ public:
     CommandHandler(Database &database, UserManager &userManager, Logger &logger);
 
     std::string handle(const Command &command, Session &session);
+    bool isValidCommand(const std::string& command) const;
 
 private:
     Database &database;

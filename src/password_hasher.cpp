@@ -7,6 +7,10 @@
 std::string PasswordHasher::hash(const std::string& password) {
     char hash[crypto_pwhash_STRBYTES];
 
+    if(password == "") {
+        return "";
+    }
+
     if (crypto_pwhash_str(
             hash,
             password.c_str(),

@@ -6,4 +6,5 @@ struct Session
 {
     bool authenticated = false;
     std::string username;
+    bool isSystem = false;
 };

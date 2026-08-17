@@ -47,7 +47,10 @@ int main()
 
     UserManager userManager;
 
-    userManager.createUser("admin", "admin123");
+    if (!userManager.userExists("admin"))
+    {
+        userManager.createUser("admin", "admin123", {"*"});
+    }
 
     CommandHandler commandHandler(
         database,
@@ -80,6 +83,7 @@ int main()
 
     session.username = "system";
     session.authenticated = true;
+    session.isSystem = true;
 
     std::cout << "Local console ready.\n";
 
